@@ -15,7 +15,14 @@
             --text-muted: #8a9ba8;
             --accent: #2b5278;
             --accent-light: #40a7e3;
-            --glass-border: rgba(255, 255, 255, 0.08);
+           
+        triggerFilter(searchInput.value.toLowerCase());
+        const activeFilter = document.querySelector('.filter-tag.active')?.dataset.cat || 'All';
+        selectFilter(activeFilter);
+    }
+
+    window.openProductModal = function(product) {
+        document.getElementById('modal-img').src = product.imageUrl || '';         --glass-border: rgba(255, 255, 255, 0.08);
             --nav-bg: rgba(23, 33, 43, 0.9);
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             --glow: 0 0 15px rgba(64, 167, 227, 0.3);
@@ -349,6 +356,8 @@
 
     animation: floatIn 0.8s cubic-bezier(0.22, 1, 0.36, 1);
     animation-fill-mode: both;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
         .nav-indicator {
@@ -1160,87 +1169,6 @@ setTimeout(hideGlobalLoader, 6000);
         hideGlobalLoader(); // ADD this at the end of the function
     }
 
-        if (noResults) homeList.appendChild(noResults);
-        
-        triggerFilter(searchInput.value.toLowerCase());
-        const activeFilter = document.querySelector('.filter-tag.active')?.dataset.cat || 'All';
-        selectFilter(activeFilter);
-    }
-
-    window.openProductModal = function(product) {
-        document.getElementById('modal-img').src = product.imageUrl || '';
-        document.getElementById('modal-title').textContent = product.name || '';
-        
-        const pricesContainer = document.getElementById('modal-prices');
-        pricesContainer.innerHTML = '<h4 style="color: var(--text-muted); font-size: 0.85rem; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase;">LIST HARGA</h4>' + 
-            '<ul style="text-align: left; padding-left: 20px; font-weight: normal; color: var(--text-main); font-size: 0.95rem; line-height: 1.6;">' + 
-            (product.priceList || []).map(p => `<li>${p}</li>`).join('') + 
-            '</ul>';
-        
-        document.getElementById('modal-desc').textContent = product.description || '';
-        
-        const waBtn = document.getElementById('modal-wa-btn');
-        if(waBtn) waBtn.href = product.whatsappLink || '#';
-
-        modal.classList.add('show');
-    };
-
-    function renderProducts(products) {
-        const storeList = document.getElementById('store-list');
-        const noResults = document.getElementById('store-no-results');
-        
-        storeList.innerHTML = '';
-        
-        products.forEach(product => {
-            const el = document.createElement('div');
-            el.className = 'item-card glass store-item';
-            el.dataset.name = product.name;
-            el.onclick = () => window.openProductModal(product);
-            
-            el.innerHTML = `
-                <img src="${product.imageUrl || ''}" class="item-icon" alt="${product.name}">
-                <div class="item-info">
-                    <div class="item-title">${product.name}</div>
-                    <div class="item-date">Premium</div>
-                </div>
-                <div class="item-action">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="9" cy="21" r="1"></circle>
-                        <circle cx="20" cy="21" r="1"></circle>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                    </svg>
-                </div>
-            `;
-            storeList.appendChild(el);
-        });
-        
-        if (noResults) storeList.appendChild(noResults);
-        triggerFilter(searchInput.value.toLowerCase());
-    }
-
-    function renderSocials(socials) {
-    const profilePage = document.getElementById('page-profile');
-    const cardList = profilePage.querySelector('.card-list');
-    cardList.innerHTML = '';
-    
-    socials
-      .filter(s => s.isActive)
-      .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .forEach(social => {
-        const el = document.createElement('a');
-        el.href = social.targetLink || '#';
-        el.className = 'social-btn glass';
-        el.target = '_blank';
-
-        el.innerHTML = `
-            <img src="${social.imageUrl || ''}" 
-                 style="width:24px;height:24px;border-radius:6px;">
-            <span>${social.name} ${social.username || ''}</span>
-        `;
-
-        cardList.appendChild(el);
-    });
-}
 
     // --- Theme Toggle Logic ---
     const sunSvg = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
@@ -1259,7 +1187,9 @@ setTimeout(hideGlobalLoader, 6000);
 
     // --- Navigation & Indicator Logic ---
 function updateIndicator(btn) {
-    if (!btn || mainNav.classList.contains('nav-search-active')) {
+    if (!btn) return;
+
+    if (mainNav.classList.contains('nav-search-active')) {
         navIndicator.style.opacity = '0';
         return;
     }
@@ -1296,7 +1226,7 @@ function updateIndicator(btn) {
 
     window.addEventListener('load', () => {
         const activeBtn = document.querySelector('.nav-btn.active[data-target]');
-        setTimeout(() => updateIndicator(activeBtn), 100);
+        setTimeout(() => updateIndicator(activeBtn), 300);
         buildFilters();
     });
     
