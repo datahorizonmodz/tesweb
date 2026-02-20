@@ -1394,7 +1394,7 @@ function executeMusicCommand(command) {
     const cmd = command.trim().toLowerCase();
     
     if (cmd === '/music1') {
-        audioElem.src = 'music/music1.mp3';
+        audioElem.src = 'music1.mp3';
         audioElem.play().then(() => {
             dynamicIsland.classList.add('active');
             diIconPlay.style.display = 'none';
