@@ -1385,16 +1385,51 @@ diPlayPause.addEventListener('click', toggleMusicPlayPause);
 
 // Automatically hide UI if music naturally finishes
 audioElem.addEventListener('ended', () => {
-    dynamicIsland.classList.remove('active');
-    diVisualizer.classList.add('paused');
+    if (playAllMode) {
+        playTrackByIndex(currentTrackIndex + 1);
+    } else {
+        dynamicIsland.classList.remove('active');
+        diVisualizer.classList.add('paused');
+    }
 });
 
 // Command Parser Execution
+let playlist = [];
+let currentTrackIndex = 0;
+let playAllMode = false;
+function generatePlaylist(max = 20) {
+    playlist = [];
+    for (let i = 1; i <= max; i++) {
+        playlist.push(`music${i}.mp3`);
+    }
+}
+
+    function playTrackByIndex(index) {
+    if (playlist.length === 0) return;
+
+    currentTrackIndex = index % playlist.length;
+    const fileName = playlist[currentTrackIndex];
+
+    audioElem.src = fileName;
+
+    const diTitle = document.querySelector('.di-title');
+    if (diTitle) diTitle.textContent = fileName;
+
+    audioElem.play().then(() => {
+        dynamicIsland.classList.add('active');
+        diIconPlay.style.display = 'none';
+        diIconPause.style.display = 'block';
+        diVisualizer.classList.remove('paused');
+    }).catch(err => {
+        console.log('Audio error:', err);
+    });
+    }
 function executeMusicCommand(command) {
     const cmd = command.trim().toLowerCase();
 
     // STOP MUSIC
     if (cmd === '/stopmusic') {
+        playAllMode = false;
         audioElem.pause();
         audioElem.currentTime = 0;
         audioElem.src = '';
@@ -1403,6 +1438,14 @@ function executeMusicCommand(command) {
         return true;
     }
 
+    // PLAY ALL MUSIC
+if (cmd === '/playallmusic') {
+    playAllMode = true;
+    generatePlaylist(20); // ganti angka kalau mau
+    playTrackByIndex(0);
+    return true;
+}
+    
     // MATCH /music1 /music2 /music3 dst
     const musicMatch = cmd.match(/^\/music(\d+)$/);
 
