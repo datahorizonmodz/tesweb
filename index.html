@@ -1392,18 +1392,9 @@ audioElem.addEventListener('ended', () => {
 // Command Parser Execution
 function executeMusicCommand(command) {
     const cmd = command.trim().toLowerCase();
-    
-    if (cmd === '/music1') {
-        audioElem.src = 'music1.mp3';
-        audioElem.play().then(() => {
-            dynamicIsland.classList.add('active');
-            diIconPlay.style.display = 'none';
-            diIconPause.style.display = 'block';
-            diVisualizer.classList.remove('paused');
-        }).catch(err => console.log("Audio playback failed (check path):", err));
-        return true;
-    } 
-    else if (cmd === '/stopmusic') {
+
+    // STOP MUSIC
+    if (cmd === '/stopmusic') {
         audioElem.pause();
         audioElem.currentTime = 0;
         audioElem.src = '';
@@ -1411,9 +1402,34 @@ function executeMusicCommand(command) {
         diVisualizer.classList.add('paused');
         return true;
     }
-    
+
+    // MATCH /music1 /music2 /music3 dst
+    const musicMatch = cmd.match(/^\/music(\d+)$/);
+
+    if (musicMatch) {
+        const trackNumber = musicMatch[1];
+        const fileName = `music${trackNumber}.mp3`;
+
+        audioElem.src = fileName;
+
+        const diTitle = document.querySelector('.di-title');
+        if (diTitle) diTitle.textContent = fileName;
+
+        audioElem.play().then(() => {
+            dynamicIsland.classList.add('active');
+            diIconPlay.style.display = 'none';
+            diIconPause.style.display = 'block';
+            diVisualizer.classList.remove('paused');
+        }).catch(err => {
+            console.log('Audio error:', err);
+            alert(`File ${fileName} tidak ditemukan`);
+        });
+
+        return true;
+    }
+
     return false;
-}
+    }
 
 // Function to safely close the search bar without modifying original closeSearch()
 function triggerExistingSearchClose() {
