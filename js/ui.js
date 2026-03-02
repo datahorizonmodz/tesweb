@@ -55,11 +55,13 @@ export function hideGlobalLoader() {
     if (loader && !loader.classList.contains('hidden')) {
         loader.classList.add('hidden');
         document.body.classList.add('loaded-state');
-        hideGlobalBackdrop(); // Hilangkan backdrop initial load
+        hideGlobalBackdrop(); 
         
-        // Pastikan render halaman home terjadi pertama kali
-        const activeNav = document.querySelector('.nav-btn.active').dataset.target;
-        renderActivePage(activeNav);
+        // Pemicu render aman saat halaman pertama kali termuat penuh
+        const activeBtn = document.querySelector('.nav-btn.active');
+        if (activeBtn) {
+            renderActivePage(activeBtn.dataset.target);
+        }
     }
 }
 
@@ -68,6 +70,7 @@ let loadingInterval;
 function startLoadingText() {
     const loaderText = document.getElementById('loading-text');
     const loader = document.getElementById('page-transition-loader');
+    if (!loader || !loaderText) return;
     loader.classList.add('active');
     let dots = 0;
     loadingInterval = setInterval(() => {
@@ -78,7 +81,8 @@ function startLoadingText() {
 
 function stopLoadingText() {
     clearInterval(loadingInterval);
-    document.getElementById('page-transition-loader').classList.remove('active');
+    const loader = document.getElementById('page-transition-loader');
+    if (loader) loader.classList.remove('active');
 }
 
 export function showProductModal(product) {
@@ -118,7 +122,7 @@ export function showProductModal(product) {
     waBtn.rel = 'noopener noreferrer';
   }
 
-  showGlobalBackdrop(199); // Gunakan global layer, jangan tumpuk layer baru
+  showGlobalBackdrop(199); 
   modal.classList.add('show');
   document.body.classList.add('modal-open');
 
@@ -174,20 +178,20 @@ export function initUI() {
           navBtns.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           
-          startLoadingText(); // Trigger loading animasi
+          startLoadingText();
           
           requestAnimationFrame(() => {
               setTimeout(() => {
                   pages.forEach(p => p.classList.remove('active'));
                   document.getElementById(targetId).classList.add('active');
 
-                  clearInactivePages(targetId); // Bersihkan memori page lain
-                  renderActivePage(targetId);   // Render hanya page yang aktif
+                  clearInactivePages(targetId);
+                  renderActivePage(targetId);
 
                   updateIndicator(btn);
                   if (mainNav.classList.contains('nav-search-active')) closeSearch();
                   
-                  setTimeout(stopLoadingText, 100); // Matikan loading perlahan
+                  setTimeout(stopLoadingText, 100); 
               }, 50); 
           });
       });
@@ -204,7 +208,6 @@ export function initUI() {
       updateIndicator(activeBtn);
   });
 
-  // Search Logic
   searchTrigger.addEventListener('click', (e) => {
       e.stopPropagation();
       if (mainNav.classList.contains('nav-search-active')) {
@@ -254,7 +257,6 @@ export function initUI() {
       filterContainer.addEventListener('wheel', pauseFilterAutoScroll, {passive: true});
   }
 
-  // Modals closure
   if (closeModalBtn) {
       closeModalBtn.addEventListener('click', () => {
           modal.classList.remove('show');
@@ -340,7 +342,7 @@ function checkAdminAccess() {
         window.location.href = 'admin.html';
     } else {
         loginBox.classList.remove('fade-out');
-        showGlobalBackdrop(99998); // Pakai global layer
+        showGlobalBackdrop(99998); 
         loginModal.classList.add('show');
         adminUsername.focus();
     }
@@ -390,7 +392,7 @@ function triggerFilter(query) {
             item.style.display = 'flex';
             item.classList.remove('stagger-card');
             void item.offsetWidth; 
-            item.style.animationDelay = `${visibleCount * 0.08}s`;
+            item.style.animationDelay = `${(visibleCount % 15) * 0.05}s`;
             item.classList.add('stagger-card');
             visibleCount++;
         } else {
@@ -453,7 +455,7 @@ function selectFilter(category) {
             item.style.display = 'flex';
             item.classList.remove('stagger-card');
             void item.offsetWidth; 
-            item.style.animationDelay = `${visibleCount * 0.08}s`;
+            item.style.animationDelay = `${(visibleCount % 15) * 0.05}s`;
             item.classList.add('stagger-card');
             visibleCount++;
         } else {
