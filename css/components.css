@@ -1,10 +1,52 @@
 /* GLASSMORPHISM UTILITY */
 .glass {
     background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    /* OPTIMASI: Turunkan radius blur card list ke 6px untuk efisiensi GPU, bentuk tetap estetik */
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow);
+    will-change: transform; /* Hinting browser untuk animasi */
+}
+
+/* GLOBAL BLUR BACKDROP - UNIFIKASI */
+.global-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 22, 33, 0.4);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+[data-theme="light"] .global-backdrop {
+    background: rgba(255, 255, 255, 0.4);
+}
+.global-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* PAGE TRANSITION LOADER */
+.page-transition-loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    padding: 14px 28px;
+    border-radius: 30px;
+    font-weight: 700;
+    color: var(--accent-light);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+}
+.page-transition-loader.active {
+    opacity: 1;
 }
 
 /* HEADER */
@@ -140,7 +182,6 @@ main {
     gap: 16px;
 }
 
-/* Jarak khusus untuk list sosial media profile agar merapat */
 #profile-list {
     gap: 10px; 
 }
@@ -156,6 +197,14 @@ main {
     overflow: hidden;
     text-decoration: none;
     color: var(--text-main);
+    /* OPTIMASI: Set fixed min-height agar layout tidak lompat saat virtualisasi render DOM */
+    min-height: 74px;
+}
+
+.item-card:hover, .item-card:active {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: var(--glow);
+    border-color: var(--accent-light);
 }
 
 .item-icon {
@@ -236,6 +285,12 @@ main {
     transition: all 0.3s ease;
 }
 
+.social-btn:hover {
+    transform: scale(1.02);
+    box-shadow: var(--glow);
+    border-color: var(--accent-light);
+}
+
 /* BOTTOM NAVIGATION */
 .bottom-nav-wrapper {
     position: fixed;
@@ -301,19 +356,6 @@ main {
     transform: scale(1.15);
 }
 
-.nav-profile-img {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    transition: border-color 0.3s;
-}
-
-.nav-btn.active .nav-profile-img {
-    border-color: var(--nav-active-icon);
-}
-
-/* SEARCH INTERACTION */
 .search-wrapper {
     width: 40px;
     height: 40px;
@@ -420,9 +462,7 @@ main {
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: var(--modal-overlay);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    /* Dihapus backdrop-filter untuk unifikasi, Blur sudah dihandle oleh #global-backdrop */
     z-index: 200;
     display: flex;
     align-items: center;
@@ -520,11 +560,11 @@ main {
     overflow-y: auto;
     padding: 16px;
     padding-bottom: 50px; 
-    scrollbar-width: none; 
+    scrollbar-width: none;
 }
 
 .modal-scroll-area::-webkit-scrollbar {
-    display: none; 
+    display: none;
 }
 
 .modal-prices {
@@ -613,6 +653,7 @@ main {
     display: none;
 }
 
+/* DYNAMIC ISLAND */
 .dynamic-island {
     position: fixed;
     top: 20px;
@@ -685,10 +726,7 @@ main {
     transition: height 0.3s ease;
 }
 
-/* ========================================= */
-/* GLOBAL LOADER & STAGGER ANIMATIONS        */
-/* ========================================= */
-
+/* GLOBAL LOADER */
 .global-loader {
     position: fixed;
     inset: 0;
@@ -696,14 +734,9 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(14, 22, 33, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    /* Dihapus backdrop-filter untuk unifikasi layer */
+    background: transparent; 
     transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.7s;
-}
-
-[data-theme="light"] .global-loader {
-    background: rgba(245, 245, 245, 0.85);
 }
 
 .global-loader.hidden {
@@ -737,52 +770,9 @@ main {
     animation: pulseGlow 2s ease-in-out infinite alternate;
 }
 
-/* CSS Loader "Checking Data..." */
-.checking-loader {
-    display: none;
-    text-align: center;
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--accent-light);
-    padding: 30px;
-    letter-spacing: 1px;
-}
-
-/* ----------------------------------------- */
-/* LAZY RENDER (INTERSECTION OBSERVER) LOGIC */
-/* ----------------------------------------- */
-
 .stagger-card {
-    /* Optimasi tingkat tinggi: Browser nggak nge-render yang diluar viewport */
-    content-visibility: auto;
-    contain-intrinsic-size: 80px; 
-
-    /* Kondisi awal saat keluar layar: sembunyi & turun sedikit */
     opacity: 0;
-    transform: translateY(30px) scale(0.95);
-    transition: opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-    will-change: opacity, transform;
-}
-
-/* Saat elemen masuk layar (in-view) */
-.stagger-card.in-view {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
-
-/* Memastikan hover efek tetap berfungsi untuk Apps/Products jika elemen in-view */
-.item-card.stagger-card.in-view:hover, 
-.item-card.stagger-card.in-view:active {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: var(--glow);
-    border-color: var(--accent-light);
-}
-
-/* Memastikan hover efek tetap berfungsi untuk Profile Socials jika elemen in-view */
-.social-btn.stagger-card.in-view:hover {
-    transform: scale(1.02);
-    box-shadow: var(--glow);
-    border-color: var(--accent-light);
+    animation: cardEntrance 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* Keyframes */
@@ -813,21 +803,22 @@ main {
     100% { opacity: 0.5; transform: scale(1.1); }
 }
 
+@keyframes cardEntrance {
+    0% { opacity: 0; transform: translateY(40px) scale(0.92); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @keyframes bounceIndicator {
     0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
     40% { transform: translateX(-50%) translateY(-4px); }
     60% { transform: translateX(-50%) translateY(-2px); }
 }
 
-/* ========================================= */
-/* ADMIN LOGIN MODAL STYLES (PURE CSS)       */
-/* ========================================= */
+/* ADMIN LOGIN MODAL */
 .login-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    /* Dihapus backdrop-filter untuk unifikasi blur */
     z-index: 99999;
     display: flex;
     align-items: center;
@@ -976,9 +967,6 @@ main {
     transform: scale(0.98);
 }
 
-/* ========================================= */
-/* DESKTOP LAYOUT OVERRIDES (min-width: 768px)*/
-/* ========================================= */
 @media (min-width: 768px) {
     header {
         max-width: 1100px;
