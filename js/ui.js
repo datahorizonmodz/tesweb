@@ -1,4 +1,5 @@
 import { executeMusicCommand } from "./music.js";
+import { clearInactivePages, renderActivePage } from "./render.js";
 
 // DOM Elements
 const htmlTag = document.documentElement;
@@ -26,76 +27,64 @@ const adminPassword = document.getElementById('admin-password');
 const toggleUserEye = document.getElementById('toggle-user-eye');
 const togglePassEye = document.getElementById('toggle-pass-eye');
 
-// Constants
 const filterCategories = ['Popular', 'Editing', 'Enhancer', 'Music', 'Film', 'Anime', 'Random'];
 
 let isDraggingFilter = false;
 let filterPauseTimer;
-
-// Drag Navigation Variables
 let isDraggingIndicator = false;
 let dragStartX = 0;
 let indicatorInitialLeft = 0;
 let currentDragLeft = 0;
 
-// Variabel untuk sistem checking animasi loader tab
-let checkingIntervals = {};
+// GLOBAL BACKDROP LOGIC
+export function showGlobalBackdrop(zIndex) {
+    const gb = document.getElementById('global-backdrop');
+    if (gb) {
+        gb.style.zIndex = zIndex;
+        gb.classList.add('show');
+    }
+}
+
+export function hideGlobalBackdrop() {
+    const gb = document.getElementById('global-backdrop');
+    if (gb) gb.classList.remove('show');
+}
 
 export function hideGlobalLoader() {
     const loader = document.getElementById('global-loader');
     if (loader && !loader.classList.contains('hidden')) {
         loader.classList.add('hidden');
         document.body.classList.add('loaded-state');
+        hideGlobalBackdrop(); // Hilangkan backdrop initial load
+        
+        // Pastikan render halaman home terjadi pertama kali
+        const activeNav = document.querySelector('.nav-btn.active').dataset.target;
+        renderActivePage(activeNav);
     }
 }
 
-// FUNGSI BARU: Animasi Checking Data antar Tab
-function playCheckingData(pageElement) {
-    const listContainer = pageElement.querySelector('.card-list');
-    if (!listContainer) return;
-
-    const isDesktop = window.innerWidth >= 768;
-    
-    // Sembunyikan elemen aslinya sebentar
-    listContainer.style.display = 'none';
-
-    // Buat atau cari teks loader checking data
-    let loader = pageElement.querySelector('.checking-loader');
-    if (!loader) {
-        loader = document.createElement('div');
-        loader.className = 'msg-card glass checking-loader';
-        pageElement.insertBefore(loader, listContainer);
-    }
-    loader.style.display = 'block';
-
+// PAGE TRANSITION ANIMATED TEXT
+let loadingInterval;
+function startLoadingText() {
+    const loaderText = document.getElementById('loading-text');
+    const loader = document.getElementById('page-transition-loader');
+    loader.classList.add('active');
     let dots = 0;
-    loader.textContent = 'Checking Data';
-    
-    // Bersihkan yang lama kalau ada yang nge-bug
-    if(checkingIntervals[pageElement.id]) clearInterval(checkingIntervals[pageElement.id]);
-    
-    checkingIntervals[pageElement.id] = setInterval(() => {
+    loadingInterval = setInterval(() => {
         dots = (dots + 1) % 4;
-        loader.textContent = 'Checking Data' + '.'.repeat(dots);
-    }, 300);
+        loaderText.textContent = "Checking Data" + ".".repeat(dots);
+    }, 250);
+}
 
-    // Hilangkan teks loader dan tampilkan list data kembali (memicu Sensor)
-    setTimeout(() => {
-        clearInterval(checkingIntervals[pageElement.id]);
-        loader.style.display = 'none';
-        listContainer.style.display = isDesktop ? 'grid' : 'flex';
-        
-        // Pancing browser untuk mengecek posisi layar supaya animasinya muncul
-        window.dispatchEvent(new Event('scroll'));
-    }, 1200);
+function stopLoadingText() {
+    clearInterval(loadingInterval);
+    document.getElementById('page-transition-loader').classList.remove('active');
 }
 
 export function showProductModal(product) {
-  // 1. Set Icon dan Title
   document.getElementById('modal-img').src = product.imageUrl || '';
   document.getElementById('modal-title').textContent = product.name || product.title || '';
     
-  // Format Array Harga
   let priceHtml = '';
   if (Array.isArray(product.priceText) && product.priceText.length > 0) {
     priceHtml = product.priceText.map(price => `<div style="margin-bottom: 4px;">- ${price}</div>`).join('');
@@ -105,20 +94,16 @@ export function showProductModal(product) {
     priceHtml = `<div style="margin-bottom: 4px;">-</div>`;
   }
     
-  // 2. Set LIST HARGA
   const modalPrices = document.getElementById('modal-prices');
   modalPrices.style.textAlign = 'left'; 
   modalPrices.innerHTML = `
     <div style="font-weight: 800; color: var(--text-muted); font-size: 1rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">LIST HARGA</div>
-    <div style="font-weight: normal; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">
-      ${priceHtml}
-    </div>
+    <div style="font-weight: normal; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">${priceHtml}</div>
   `;
 
   const descH4 = document.querySelector('.modal-section h4');
   if (descH4) descH4.style.display = 'none';
 
-  // 3. Set DESKRIPSI PRODUK
   const modalDesc = document.getElementById('modal-desc');
   modalDesc.style.textAlign = 'left';
   modalDesc.innerHTML = `
@@ -126,7 +111,6 @@ export function showProductModal(product) {
     <div style="color: var(--text-main); font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap;">${product.description || '-'}</div>
   `;
 
-  // 4. Tombol WA
   const waBtn = document.getElementById('modal-wa-btn');
   if (waBtn) {
     waBtn.href = product.whatsappLink || product.targetLink || '#';
@@ -134,6 +118,7 @@ export function showProductModal(product) {
     waBtn.rel = 'noopener noreferrer';
   }
 
+  showGlobalBackdrop(199); // Gunakan global layer, jangan tumpuk layer baru
   modal.classList.add('show');
   document.body.classList.add('modal-open');
 
@@ -143,11 +128,9 @@ export function showProductModal(product) {
     const scrollShadow = document.getElementById('scroll-shadow');
     
     if(!scrollArea) return;
-
     scrollArea.scrollTop = 0;
 
     const isScrollable = scrollArea.scrollHeight > (scrollArea.clientHeight + 2);
-
     if (isScrollable) {
         scrollIndicator.style.opacity = '1';
         scrollShadow.style.opacity = '1';
@@ -175,37 +158,38 @@ export function showProductModal(product) {
 }
 
 export function initUI() {
-  setTimeout(hideGlobalLoader, 6000);
+  setTimeout(hideGlobalLoader, 8000); // Failsafe loader
 
-  // Theme toggle
   themeBtn.addEventListener('click', () => {
     const isDark = htmlTag.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-      htmlTag.setAttribute('data-theme', 'light');
-    } else {
-      htmlTag.setAttribute('data-theme', 'dark');
-    }
+    htmlTag.setAttribute('data-theme', isDark ? 'light' : 'dark');
   });
 
-  // Navigation Logic Terupdate dengan Checking Data Loader
+  // PAGE NAVIGATION (Lazy Rendering Logic)
   navBtns.forEach(btn => {
       btn.addEventListener('click', () => {
           const targetId = btn.dataset.target;
-          const targetPage = document.getElementById(targetId);
-
-          if (btn.classList.contains('active')) return;
+          if (document.getElementById(targetId).classList.contains('active')) return;
 
           navBtns.forEach(b => b.classList.remove('active'));
-          pages.forEach(p => p.classList.remove('active'));
-          
           btn.classList.add('active');
-          targetPage.classList.add('active');
           
-          // Jalankan animasi pergantian tab
-          playCheckingData(targetPage);
+          startLoadingText(); // Trigger loading animasi
           
-          updateIndicator(btn);
-          if (mainNav.classList.contains('nav-search-active')) closeSearch();
+          requestAnimationFrame(() => {
+              setTimeout(() => {
+                  pages.forEach(p => p.classList.remove('active'));
+                  document.getElementById(targetId).classList.add('active');
+
+                  clearInactivePages(targetId); // Bersihkan memori page lain
+                  renderActivePage(targetId);   // Render hanya page yang aktif
+
+                  updateIndicator(btn);
+                  if (mainNav.classList.contains('nav-search-active')) closeSearch();
+                  
+                  setTimeout(stopLoadingText, 100); // Matikan loading perlahan
+              }, 50); 
+          });
       });
   });
 
@@ -261,7 +245,6 @@ export function initUI() {
       }
   });
 
-  // Filters Interaction
   if(filterContainer) {
       filterContainer.addEventListener('touchstart', pauseFilterAutoScroll, {passive: true});
       filterContainer.addEventListener('mousedown', pauseFilterAutoScroll);
@@ -271,11 +254,12 @@ export function initUI() {
       filterContainer.addEventListener('wheel', pauseFilterAutoScroll, {passive: true});
   }
 
-  // Product Modal Events
+  // Modals closure
   if (closeModalBtn) {
       closeModalBtn.addEventListener('click', () => {
           modal.classList.remove('show');
           document.body.classList.remove('modal-open');
+          hideGlobalBackdrop();
       });
   }
   if (modal) {
@@ -283,16 +267,24 @@ export function initUI() {
           if (e.target === modal) {
               modal.classList.remove('show');
               document.body.classList.remove('modal-open');
+              hideGlobalBackdrop();
           }
       });
   }
 
-  // Admin Login Modal Events
   if (closeLoginModal) {
-      closeLoginModal.addEventListener('click', () => loginModal.classList.remove('show'));
+      closeLoginModal.addEventListener('click', () => {
+          loginModal.classList.remove('show');
+          hideGlobalBackdrop();
+      });
   }
   if (loginModal) {
-      loginModal.addEventListener('click', (e) => { if (e.target === loginModal) loginModal.classList.remove('show'); });
+      loginModal.addEventListener('click', (e) => { 
+          if (e.target === loginModal) {
+              loginModal.classList.remove('show');
+              hideGlobalBackdrop();
+          }
+      });
   }
 
   if (adminLoginForm) {
@@ -335,10 +327,8 @@ export function initUI() {
 
   mainNav.addEventListener('mousedown', handleDragStart);
   mainNav.addEventListener('touchstart', handleDragStart, { passive: true });
-
   document.addEventListener('mousemove', handleDragMove);
   document.addEventListener('touchmove', handleDragMove, { passive: false });
-
   document.addEventListener('mouseup', handleDragEnd);
   document.addEventListener('touchend', handleDragEnd);
 }
@@ -350,6 +340,7 @@ function checkAdminAccess() {
         window.location.href = 'admin.html';
     } else {
         loginBox.classList.remove('fade-out');
+        showGlobalBackdrop(99998); // Pakai global layer
         loginModal.classList.add('show');
         adminUsername.focus();
     }
@@ -386,32 +377,31 @@ function triggerExistingSearchClose() {
     searchClose.click();
 }
 
+// FILTER PADA HALAMAN AKTIF SAJA UNTUK OPTIMASI
 function triggerFilter(query) {
-    let homeVisible = 0;
-    document.querySelectorAll('.app-item').forEach(item => {
-        if(item.dataset.name.toLowerCase().includes(query)) {
-            item.style.display = 'flex';
-            homeVisible++;
-        } else {
-            item.style.display = 'none';
-            item.classList.remove('in-view');
-        }
-    });
-    const hNoRes = document.getElementById('home-no-results');
-    if (hNoRes) hNoRes.style.display = (homeVisible === 0) ? 'block' : 'none';
+    let visibleCount = 0;
+    const activePage = document.querySelector('.page.active').id;
+    const containerId = activePage === 'page-home' ? 'home-list' : activePage === 'page-store' ? 'store-list' : null;
+    
+    if(!containerId) return;
 
-    let storeVisible = 0;
-    document.querySelectorAll('.store-item').forEach(item => {
+    document.querySelectorAll(`#${containerId} .item-card`).forEach(item => {
         if(item.dataset.name.toLowerCase().includes(query)) {
             item.style.display = 'flex';
-            storeVisible++;
+            item.classList.remove('stagger-card');
+            void item.offsetWidth; 
+            item.style.animationDelay = `${visibleCount * 0.08}s`;
+            item.classList.add('stagger-card');
+            visibleCount++;
         } else {
             item.style.display = 'none';
-            item.classList.remove('in-view');
+            item.classList.remove('stagger-card');
         }
     });
-    const sNoRes = document.getElementById('store-no-results');
-    if (sNoRes) sNoRes.style.display = (storeVisible === 0) ? 'block' : 'none';
+
+    const noResId = activePage === 'page-home' ? 'home-no-results' : 'store-no-results';
+    const noResEl = document.getElementById(noResId);
+    if (noResEl) noResEl.style.display = (visibleCount === 0) ? 'block' : 'none';
 }
 
 function buildFilters() {
@@ -421,9 +411,7 @@ function buildFilters() {
         const btn = document.createElement('div');
         btn.className = `filter-tag ${cat === 'All' ? 'active' : ''}`;
         
-        if (index >= arr.length) {
-            btn.classList.add('duplicate-tag');
-        }
+        if (index >= arr.length) btn.classList.add('duplicate-tag');
         
         btn.textContent = cat;
         btn.dataset.cat = cat;
@@ -454,21 +442,23 @@ function resumeFilterAutoScroll() {
 
 function selectFilter(category) {
     const cat = category.toLowerCase();
-    
     document.querySelectorAll('.filter-tag').forEach(t => {
         t.classList.toggle('active', t.dataset.cat.toLowerCase() === category.toLowerCase());
     });
     
     let visibleCount = 0;
-    document.querySelectorAll('.app-item').forEach(item => {
+    document.querySelectorAll('#home-list .item-card').forEach(item => {
         const itemCategories = item.dataset.category ? item.dataset.category.split(',') : [];
-        
         if (cat === 'all' || itemCategories.includes(cat)) {
             item.style.display = 'flex';
+            item.classList.remove('stagger-card');
+            void item.offsetWidth; 
+            item.style.animationDelay = `${visibleCount * 0.08}s`;
+            item.classList.add('stagger-card');
             visibleCount++;
         } else {
             item.style.display = 'none';
-            item.classList.remove('in-view'); // Cabut animasi agar refresh saat muncul lagi
+            item.classList.remove('stagger-card');
         }
     });
     
@@ -476,22 +466,15 @@ function selectFilter(category) {
     if (hNoRes) hNoRes.style.display = visibleCount === 0 ? 'block' : 'none';
 }
 
-// =========================================
-// DRAG NAVIGATION INDICATOR FUNCTIONS
-// =========================================
-
 function handleDragStart(e) {
     if (mainNav.classList.contains('nav-search-active')) return;
-
     const targetBtn = e.target.closest('.nav-btn');
     if (targetBtn && targetBtn.classList.contains('active')) {
         let clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-
         isDraggingIndicator = true;
         dragStartX = clientX;
         indicatorInitialLeft = parseFloat(navIndicator.style.left || 0);
         currentDragLeft = indicatorInitialLeft;
-
         navIndicator.classList.add('dragging');
         document.body.style.userSelect = 'none';
     }
@@ -499,12 +482,9 @@ function handleDragStart(e) {
 
 function handleDragMove(e) {
     if (!isDraggingIndicator) return;
-
     if (e.type === 'touchmove') e.preventDefault();
-
     let clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
     let deltaX = clientX - dragStartX;
-
     currentDragLeft = indicatorInitialLeft + deltaX;
 
     const navRect = mainNav.getBoundingClientRect();
@@ -520,7 +500,6 @@ function handleDragMove(e) {
 
 function handleDragEnd(e) {
     if (!isDraggingIndicator) return;
-
     isDraggingIndicator = false;
     navIndicator.classList.remove('dragging');
     document.body.style.userSelect = '';
@@ -544,11 +523,8 @@ function handleDragEnd(e) {
 
     if (closestBtn) {
         if (closestBtn.id === 'search-wrapper') {
-            if (!mainNav.classList.contains('nav-search-active')) {
-                document.getElementById('search-trigger').click();
-            } else {
-                updateIndicator(null);
-            }
+            if (!mainNav.classList.contains('nav-search-active')) document.getElementById('search-trigger').click();
+            else updateIndicator(null);
         } else {
             closestBtn.click();
         }
