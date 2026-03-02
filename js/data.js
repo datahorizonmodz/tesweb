@@ -1,44 +1,55 @@
 import { auth, db } from "./firebase.js";
 import { signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { collection, getDocs, onSnapshot, query, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderApps, renderProducts, renderSocials } from "./render.js";
+import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { handleDocChanges } from "./render.js";
+import { hideGlobalLoader } from "./ui.js";
 
 let dataLoaded = false;
 
-// Gunakan limit untuk performa awal jika data sangat banyak
-export const loadData = async () => {
+// Cek apakah load awal sudah selesai
+let appsLoaded = false;
+let productsLoaded = false;
+let profilesLoaded = false;
+
+function checkInitialLoadComplete() {
+    if (appsLoaded && productsLoaded && profilesLoaded) {
+        // Berikan waktu sejenak agar DOM diffing di render.js selesai sebelum nutup loader
+        setTimeout(() => hideGlobalLoader(), 200);
+    }
+}
+
+export const loadData = () => {
     if (dataLoaded) return;
     dataLoaded = true;
 
-    try {
-        // Ambil data Apps (Cukup sekali saja untuk menghemat bandwidth & beban)
-        const appsSnapshot = await getDocs(query(collection(db, 'apps'), limit(50)));
-        renderApps(appsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+    // OPTIMASI: Memanfaatkan difing docChanges untuk performa real-time, menghindari perombakan full DOM
+    onSnapshot(collection(db, 'apps'), snapshot => {
+        handleDocChanges('apps', snapshot.docChanges());
+        if (!appsLoaded) { appsLoaded = true; checkInitialLoadComplete(); }
+    }, err => console.error("Error loading Apps:", err));
 
-        // Ambil data Products
-        const productsSnapshot = await getDocs(query(collection(db, 'products'), limit(50)));
-        renderProducts(productsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+    onSnapshot(collection(db, 'products'), snapshot => {
+        handleDocChanges('products', snapshot.docChanges());
+        if (!productsLoaded) { productsLoaded = true; checkInitialLoadComplete(); }
+    }, err => console.error("Error loading Products:", err));
 
-        // Socials biasanya sedikit, boleh pakai onSnapshot jika ingin real-time
-        onSnapshot(collection(db, 'profiles'), snapshot => {
-            renderSocials(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-        }, err => console.error("Error loading Socials:", err));
-
-    } catch (err) {
-        console.error("Data Load Error:", err);
-    }
+    onSnapshot(collection(db, 'profiles'), snapshot => {
+        handleDocChanges('profiles', snapshot.docChanges());
+        if (!profilesLoaded) { profilesLoaded = true; checkInitialLoadComplete(); }
+    }, err => console.error("Error loading Socials:", err));
 };
 
 export const initAuth = async () => {
     try {
         await signInAnonymously(auth);
-        // loadData akan dipanggil oleh onAuthStateChanged
+        loadData();
     } catch (err) {
         console.warn("Auth Warning:", err.message);
-        loadData(); // Tetap coba load jika anonim gagal (bergantung rule firestore)
+        loadData();
     }
 };
 
+// Initial listener
 onAuthStateChanged(auth, user => {
     if (user) loadData();
 });
