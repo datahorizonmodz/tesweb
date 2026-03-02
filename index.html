@@ -11,8 +11,11 @@
 </head>
 <body>
 
+<!-- GLOBAL BLUR BACKDROP (Unifikasi Layer Blur) -->
+<div id="global-backdrop" class="global-backdrop show" style="z-index: 999998;"></div>
+
 <!-- GLOBAL LOADER OVERLAY -->
-<div id="global-loader" class="global-loader glass">
+<div id="global-loader" class="global-loader">
     <div class="spinner-container">
         <div class="spinner"></div>
         <div class="spinner-glow"></div>
@@ -25,14 +28,12 @@
         <img src="https://res.cloudinary.com/dwctfnwdu/image/upload/v1772169723/azqedepxawsl4pdteld9.png" alt="Profile" class="header-profile">
         <div class="header-title">DATZON</div>
         <button class="theme-btn" id="theme-btn" aria-label="Toggle Theme">
-            <!-- Wrapper Logo Bulan -->
             <div class="icon-wrapper wrapper-moon">
                 <svg viewBox="0 0 24 24" class="anim-moon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     <path d="M3 3l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" fill="currentColor"/>
                 </svg>
             </div>
-            <!-- Wrapper Logo Matahari -->
             <div class="icon-wrapper wrapper-sun">
                 <svg viewBox="0 0 24 24" class="anim-sun" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"></circle>
@@ -49,12 +50,17 @@
         </button>
     </header>
 
+    <!-- PAGE TRANSITION LOADER (Animasi Loading Teks) -->
+    <div id="page-transition-loader" class="page-transition-loader glass">
+        <span id="loading-text">Checking Data...</span>
+    </div>
+
     <!-- MAIN CONTENT -->
     <main>
         <!-- HOME PAGE -->
         <section id="page-home" class="page active">
             <div class="msg-card glass hero-text">
-  Kumpulan Aplikasi MOD yang bisa kalian download secara gratis. Terkadang ada beberapa aplikasi yang mungkin error karena belum update atau bermasalah. Gua bukan MODER ya, gua cuma mencari MOD yang berguna untuk di-share ke orang yang membutuhkan aplikasinya. Thanks all.
+                Kumpulan Aplikasi MOD yang bisa kalian download secara gratis. Terkadang ada beberapa aplikasi yang mungkin error karena belum update atau bermasalah. Gua bukan MODER ya, gua cuma mencari MOD yang berguna untuk di-share ke orang yang membutuhkan aplikasinya. Thanks all.
             </div>
 
             <div class="filter-container" id="filter-container">
@@ -146,7 +152,6 @@
                 <h2 class="modal-title" id="modal-title">Product Name</h2>
             </div>
 
-            <!-- SCROLLABLE CONTENT WRAPPER -->
             <div class="modal-scroll-wrapper">
                 <div class="modal-scroll-area" id="modal-scroll-area">
                     <div class="modal-prices" id="modal-prices"></div>
@@ -154,9 +159,8 @@
                         <p id="modal-desc"></p>
                     </div>
                 </div>
-                <!-- SHADOW & INDICATOR -->
                 <div class="scroll-shadow" id="scroll-shadow"></div>
-                <div class="scroll-indicator" id="scroll-indicator">SCROL KE BAWAH</div>
+                <div class="scroll-indicator" id="scroll-indicator">SCROLL KE BAWAH</div>
             </div>
 
             <a href="#" class="wa-btn" id="modal-wa-btn">
